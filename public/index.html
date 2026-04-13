@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>LUCID AI</title>
+  <style>
+
+
+
+    /* --- TIMELINE STYLES --- */
+    .timeline-date-group { margin-top: 30px; margin-bottom: 15px; font-size: 1.1rem; font-weight: bold; color: var(--text-light); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+    .timeline-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border-color); }
+    .timeline-link { color: var(--text-main); text-decoration: none; font-size: 1rem; flex-grow: 1; margin-right: 20px; transition: color 0.2s; }
+    .timeline-link:hover { color: var(--brand-color); }
+    .archive-btn { background: transparent; border: 1px solid var(--border-color); color: var(--text-light); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; }
+    .archive-btn:hover { background: var(--tag-bg); color: var(--text-main); }
+    .archive-btn.archived { background: var(--brand-color); color: #fff; border-color: var(--brand-color); }
+
+    /* --- SEARCH BAR: LIGHT MODE (DEFAULT) --- */
+    .topic-search-container { position: relative; margin-bottom: 20px; width: 100%; }
+    .topic-search-container .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #888; pointer-events: none; }
+    #topicSearchInput { width: 100%; background-color: #f4f4f5; border: 1px solid transparent; border-radius: 20px; padding: 12px 16px 12px 40px; color: #333; font-size: 14px; font-family: inherit; outline: none; box-sizing: border-box; transition: all 0.2s ease; }
+
+    /* --- SEARCH BAR: DARK MODE OVERRIDES --- */
+    body.dark-theme .topic-search-container .search-icon { color: #666; }
+    body.dark-theme #topicSearchInput { background-color: #1a1a1a; border: 1px solid #333; color: #fff; }
+    body.dark-theme #topicSearchInput:focus { border-color: #4A90E2; }
+
+    /* The Minimal AI Sparkle Button */
+    .smart-summary-btn { background: none; border: none; color: var(--text-muted, #888); cursor: pointer; padding: 5px; transition: color 0.2s ease, transform 0.2s ease; display: flex; align-items: center; }
+    .smart-summary-btn:hover { color: #000; transform: scale(1.1); }
+    .dark-theme .smart-summary-btn:hover { color: #fff; }
+
+    /* The pulse animation for the target feed card */
+    @keyframes highlight-pulse { 0% { box-shadow: 0 0 0 0 rgba(100, 150, 255, 0.4); border-color: rgba(100, 150, 255, 0.8); } 70% { box-shadow: 0 0 0 15px rgba(100, 150, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(100, 150, 255, 0); } }
+    .pulse-card { animation: highlight-pulse 2s cubic-bezier(0.16, 1, 0.3, 1); }
+
+    /* --- CSS Variables --- */
+    :root { --bg-color: #fafafa; --sidebar-bg: #ffffff; --text-main: #171717; --text-light: #737373; --accent: #000000; --brand-color: #2563eb; --card-bg: #ffffff; --border-color: #e5e5e5; --btn-text: #ffffff; --tag-bg: #f5f5f5; --tag-hover: #e5e5e5; --glass-bg: rgba(250, 250, 250, 0.8); }
+    body.dark-theme { --bg-color: #0a0a0a; --sidebar-bg: #0a0a0a; --text-main: #ededed; --text-light: #a3a3a3; --accent: #ffffff; --brand-color: #3b82f6; --card-bg: #121212; --border-color: #262626; --btn-text: #000000; --tag-bg: #1f1f1f; --tag-hover: #2e2e2e; --glass-bg: rgba(10, 10, 10, 0.8); }
+    
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; transition: background-color 0.4s ease, color 0.4s ease; -webkit-font-smoothing: antialiased; }
+    
+    /* --- SIDEBAR --- */
+    .sidebar { width: 260px; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); padding: 40px 20px; display: flex; flex-direction: column; transition: background-color 0.4s ease, border-color 0.4s ease; z-index: 10; }
+    .sidebar h1 { font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif; font-size: 1.6em; font-weight: 700; margin-top: 0; margin-bottom: 45px; padding-left: 15px; letter-spacing: -0.5px; }
+    .nav-menu { display: flex; flex-direction: column; gap: 6px; }
+    .nav-item { display: flex; align-items: center; padding: 10px 15px; text-decoration: none; color: var(--text-light); font-weight: 500; font-size: 0.9em; border-radius: 10px; transition: all 0.2s ease; cursor: pointer; }
+    .nav-item svg { width: 18px; height: 18px; margin-right: 12px; opacity: 0.7; transition: opacity 0.2s ease; }
+    .nav-item:hover { background-color: var(--tag-bg); color: var(--text-main); }
+    .nav-item.active { background-color: var(--text-main); color: var(--bg-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    body.dark-theme .nav-item.active { box-shadow: 0 4px 12px rgba(255,255,255,0.05); }
+    .nav-item.active svg { opacity: 1; }
+    .nav-item.settings { margin-top: auto; }
+
+    /* --- MAIN CONTENT --- */
+    .main-content { flex: 1; overflow-y: auto; position: relative; }
+    .content-wrapper { max-width: 800px; margin: 0 auto; padding: 0 40px 100px 40px; }
+    .header-glass { position: sticky; top: 0; background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 40px 0 20px 0; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 1px solid transparent; transition: border-bottom 0.3s ease; }
+    h2.section-title { font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif; color: var(--text-main); font-size: 2em; font-weight: 600; letter-spacing: -0.8px; margin: 0; }
+    .theme-toggle { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .theme-toggle:hover { transform: scale(1.05); border-color: var(--text-light); }
+    #topicsPanel, #timelinePanel { display: none; }
+
+    /* --- TOPICS PANEL --- */
+    .topics-panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; margin-bottom: 30px; animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; box-shadow: 0 8px 30px rgba(0,0,0,0.02); }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+    .topic-group { margin-bottom: 25px; }
+    .topic-group:last-child { margin-bottom: 0; }
+    .topic-label { font-size: 0.75em; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; color: var(--text-light); margin-bottom: 12px; }
+    .tags-container { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag-pill { background: var(--tag-bg); color: var(--text-main); border: 1px solid transparent; padding: 8px 16px; border-radius: 20px; font-size: 0.85em; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+    .tag-pill:hover { background: var(--tag-hover); transform: translateY(-1px); }
+    .tag-pill.active { background: var(--text-main); color: var(--bg-color); }
+
+    /* --- CONTROL PANEL --- */
+    .control-panel { padding: 0 0 30px 0; margin-bottom: 30px; }
+    .control-panel p { font-size: 1em; color: var(--text-light); margin: 0 0 20px 0; }
+    .btn { background-color: var(--text-main); color: var(--bg-color); border: none; padding: 10px 20px; margin-right: 10px; border-radius: 8px; cursor: pointer; font-size: 0.85em; font-weight: 500; transition: all 0.2s ease; }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { background-color: var(--tag-bg); color: var(--text-light); cursor: not-allowed; transform: none; }
+    .status { margin-top: 15px; font-size: 0.9em; color: var(--text-light); }
+    .error-box { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 12px 16px; border-radius: 8px; margin-top: 15px; font-size: 0.9em; display: inline-block; }
+
+    /* --- EDITORIAL CARDS --- */
+    .card { background: var(--card-bg); padding: 35px; margin-bottom: 25px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.01); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.04); border-color: rgba(59, 130, 246, 0.4); }
+    body.dark-theme .card:hover { box-shadow: 0 12px 30px rgba(0,0,0,0.3); border-color: var(--brand-color); }
+    .card h3 { font-family: 'Graphik', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, sans-serif; margin: 0 0 10px 0; color: var(--text-main); font-size: 1.5em; font-weight: 600; line-height: 1.3; letter-spacing: -0.3px; }
+    .source { font-size: 0.75em; color: var(--brand-color); margin-bottom: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .summary { white-space: pre-wrap; color: var(--text-light); font-size: 1em; line-height: 1.7; }
+    
+    a { text-decoration: none; color: inherit; }
+    a:hover h3 { color: var(--brand-color); }
+    .main-content::-webkit-scrollbar { width: 8px; }
+    .main-content::-webkit-scrollbar-track { background: transparent; }
+    .main-content::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+   /* --- AUTH STYLES --- */
+.auth-container { 
+    max-width: 400px; 
+    margin: 100px auto; 
+    padding: 40px; 
+    background: var(--card-bg); /* Matches your feed cards */
+    border: 1px solid var(--border-color); /* Matches feed card borders */
+    border-radius: 12px; 
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* Very subtle, clean shadow */
+    text-align: center; 
+    position: relative; /* <-- ADDED THIS LINE */
+}
+
+.auth-container h2 { 
+    font-family: 'Graphik', -apple-system, sans-serif; 
+    margin-top: 0; 
+    margin-bottom: 30px; 
+    font-size: 1.8em; 
+    color: var(--text-main);
+}
+
+.auth-container input { 
+    width: 100%; 
+    box-sizing: border-box; 
+    margin-bottom: 15px; 
+    padding: 14px 16px; 
+    background: transparent; 
+    border: 1px solid var(--border-color); 
+    border-radius: 8px; 
+    color: var(--text-main); 
+    font-size: 1em; 
+    outline: none; 
+    transition: all 0.2s ease; 
+}
+
+.auth-container input:focus { 
+    border-color: var(--brand-color); 
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); 
+}
+
+.btn-primary { 
+    width: 100%; 
+    padding: 14px; 
+    margin-top: 10px;
+    background: var(--text-main); /* Black in light mode, matches sidebar */
+    color: var(--bg-color); /* White text in light mode */
+    border: none; 
+    border-radius: 8px; 
+    font-weight: 600; 
+    font-size: 15px; 
+    cursor: pointer; 
+    transition: transform 0.1s ease, opacity 0.2s ease; 
+}
+
+.btn-primary:hover { 
+    opacity: 0.85; 
+}
+
+.btn-primary:active { 
+    transform: scale(0.98); 
+}
+
+.auth-toggle { 
+    margin-top: 20px; 
+    font-size: 14px; 
+    color: var(--text-light, #666); 
+}
+
+.auth-toggle span { 
+    color: var(--brand-color); /* Lucid Blue */
+    cursor: pointer; 
+    font-weight: 600; 
+}
+
+.auth-toggle span:hover { 
+    text-decoration: underline; 
+}
+
+/* Auth Theme Toggle Icon */
+.auth-theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.auth-theme-toggle:hover {
+    background: var(--border-color);
+}
+
+/* Auto-swap theme icons based on the body class */
+.auth-theme-toggle .sun-icon { display: none; }
+.auth-theme-toggle .moon-icon { display: block; }
+
+/* When dark mode is active, flip them */
+body.dark-theme .auth-theme-toggle .sun-icon { display: block; }
+body.dark-theme .auth-theme-toggle .moon-icon { display: none; }
+
+/* --- AUTH PAGE BACKGROUND (Auto-hides with the login screen) --- */
+
+/* Light Mode: Faint black tech doodles (10% Opacity) */
+#auth-screen::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1; /* Pushes it behind your card */
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' opacity='0.15'%3E%3Cpath d='M30 40l-8 8 8 8M46 40l8 8-8 8M38 36l-4 24'/%3E%3Cpath d='M120 40c0-3 12-3 12 0c0 3-12 3-12 0v10c0 3 12 3 12 0v10c0 3 12 3 12 0M120 50c0-3 12-3 12 0M120 60c0-3 12-3 12 0'/%3E%3Crect x='20' y='140' width='16' height='16' rx='2'/%3E%3Cpath d='M24 140v-4M32 140v-4M24 156v4M32 156v4M20 144h-4M20 152h-4M36 144h4M36 152h4'/%3E%3Ccircle cx='80' cy='160' r='3'/%3E%3Ccircle cx='100' cy='180' r='3'/%3E%3Ccircle cx='110' cy='150' r='3'/%3E%3Cpath d='M82 162l16 16M102 178l6-26M83 159l25-8'/%3E%3Cpath d='M170 30v12M176 28v12M166 34h14M164 38h14'/%3E%3Cpath d='M180 170v8M176 174h8M50 80v6M47 83h6'/%3E%3Cpath d='M70 70c4-4 8 4 12 0c4-4 8 4 12 0M10 180c4-4 8 4 12 0'/%3E%3Cpath d='M90 20l6 6M90 26l6-6M140 140l4 4M140 144l4-4'/%3E%3Cpath d='M100 100a8 8 0 0 1 12 0M96 96a14 14 0 0 1 20 0'/%3E%3Ccircle cx='10' cy='10' r='1'/%3E%3Ccircle cx='60' cy='25' r='1'/%3E%3Ccircle cx='140' cy='80' r='1'/%3E%3Ccircle cx='190' cy='100' r='1'/%3E%3Ccircle cx='30' cy='110' r='1'/%3E%3Ccircle cx='150' cy='190' r='1'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Dark Mode: Faint white tech doodles (8% Opacity) */
+body.dark-theme #auth-screen::before {
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' opacity='0.15'%3E%3Cpath d='M30 40l-8 8 8 8M46 40l8 8-8 8M38 36l-4 24'/%3E%3Cpath d='M120 40c0-3 12-3 12 0c0 3-12 3-12 0v10c0 3 12 3 12 0v10c0 3 12 3 12 0M120 50c0-3 12-3 12 0M120 60c0-3 12-3 12 0'/%3E%3Crect x='20' y='140' width='16' height='16' rx='2'/%3E%3Cpath d='M24 140v-4M32 140v-4M24 156v4M32 156v4M20 144h-4M20 152h-4M36 144h4M36 152h4'/%3E%3Ccircle cx='80' cy='160' r='3'/%3E%3Ccircle cx='100' cy='180' r='3'/%3E%3Ccircle cx='110' cy='150' r='3'/%3E%3Cpath d='M82 162l16 16M102 178l6-26M83 159l25-8'/%3E%3Cpath d='M170 30v12M176 28v12M166 34h14M164 38h14'/%3E%3Cpath d='M180 170v8M176 174h8M50 80v6M47 83h6'/%3E%3Cpath d='M70 70c4-4 8 4 12 0c4-4 8 4 12 0M10 180c4-4 8 4 12 0'/%3E%3Cpath d='M90 20l6 6M90 26l6-6M140 140l4 4M140 144l4-4'/%3E%3Cpath d='M100 100a8 8 0 0 1 12 0M96 96a14 14 0 0 1 20 0'/%3E%3Ccircle cx='10' cy='10' r='1'/%3E%3Ccircle cx='60' cy='25' r='1'/%3E%3Ccircle cx='140' cy='80' r='1'/%3E%3Ccircle cx='190' cy='100' r='1'/%3E%3Ccircle cx='30' cy='110' r='1'/%3E%3Ccircle cx='150' cy='190' r='1'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+
+  </style>
+</head>
+<body>
+
+<div id="auth-screen" class="auth-container">
+    <button class="auth-theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+        <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+    </button>
+    
+
+    <h2 id="authTitle">Welcome to Lucid AI<span style="color: var(--brand-color);">.</span></h2>
+    
+    <div>
+        <input type="email" id="emailInput" placeholder="Enter your email" required>
+        <input type="password" id="passwordInput" placeholder="Enter your password" required>
+        <button id="primaryAuthBtn" class="btn-primary" onclick="handleLogin(event)">Log In</button>
+    </div>
+    
+    <div class="auth-toggle">
+        <p id="toggleText">First time here? <span onclick="document.getElementById('authTitle').innerHTML='Create an Account<span style=\'color: var(--brand-color);\'>.</span>'; document.getElementById('primaryAuthBtn').innerText='Sign Up'; document.getElementById('primaryAuthBtn').onclick=handleRegister; this.parentElement.innerHTML='Already have an account? <span onclick=\'window.location.reload()\'>Log In</span>';">Create your account</span></p>
+    </div>
+</div>
+
+
+  <div id="app-content" style="display: none; width: 100%;">
+    <aside class="sidebar">
+      <h1>LUCID AI<span style="color: var(--brand-color);">.</span></h1>
+      <nav class="nav-menu">
+        <a onclick="showTopics()" class="nav-item" id="navTopics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Topics
+        </a>
+        <a onclick="showFeed()" class="nav-item active" id="navFeed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          Feed
+        </a>
+        <a onclick="showTimeline()" class="nav-item" id="navTimeline">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Timeline
+        </a>
+        <a onclick="showBookmarks()" class="nav-item" id="navBookmarks">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          Bookmarks
+        </a>
+        <a onclick="handleLogout()" class="nav-item settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Log Out
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-content" id="mainScroll">
+      <div class="content-wrapper">
+        
+        <div class="header-glass" id="glassHeader">
+          <h2 class="section-title" id="pageTitle">Your Feed</h2>
+          <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle Dark Mode">
+            <svg id="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <svg id="sun-icon" style="display:none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </button>
+        </div>
+
+        <div id="bookmarks" style="display: none;">
+          <div id="bookmarksList"></div>
+        </div>
+
+        <div id="timelinePanel">
+          <div id="timelineList" style="color: var(--text-light);">Loading timeline...</div>
+        </div>
+
+        <div class="topics-panel" id="topicsPanel">
+          <div class="topic-search-container">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="topicSearchInput" placeholder="Search headings...">
+          </div>
+
+          <div class="topic-group">
+            <div class="topic-label">AI Trends & Models</div>
+            <div class="tags-container">
+              <button class="tag-pill active" onclick="filterFeed(this, 'ALL')">All News</button>
+              <button class="tag-pill" onclick="filterFeed(this, '#AgenticAI')">#AgenticAI</button>
+              <button class="tag-pill" onclick="filterFeed(this, '#NextGenModels')">#NextGenModels</button>
+              <button class="tag-pill" onclick="filterFeed(this, '#GenAI')">#GenAI</button>
+            </div>
+          </div>
+          
+          <div class="topic-group">
+            <div class="topic-label">Research & Publications</div>
+            <div class="tags-container">
+              <button class="tag-pill" onclick="filterFeed(this, '#PapersAndResearch')">#Papers & Research</button>
+              <button class="tag-pill" onclick="filterFeed(this, '#MLResearch')">#MLResearch</button>
+            </div>
+          </div>
+
+          <div class="topic-group">
+            <div class="topic-label">Industry & Workforce</div>
+            <div class="tags-container">
+              <button class="tag-pill" onclick="filterFeed(this, '#FutureOfWork')">#FutureOfWork</button>
+              <button class="tag-pill" onclick="filterFeed(this, '#OrgChanges')">#OrgChanges</button>
+              <button class="tag-pill" onclick="filterFeed(this, '#AIEthics')">#AIEthics</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="control-panel" id="controlPanel">
+          <p><strong id="queueCount">0</strong> articles waiting in the queue.</p>
+          <button class="btn" id="scrapeBtn" onclick="runScraper()">Fetch Intelligence</button>
+          <button class="btn" id="processBtn" onclick="runProcessor()">Process Summaries</button>
+          <div class="status" id="statusMsg"></div>
+        </div>
+
+        <div id="feed"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // --- AUTHENTICATION & HEADERS HELPER ---
+
+    function getAuthHeaders(includeContentType = true) {
+        const token = localStorage.getItem('lucid_token');
+        const headers = {
+            'Authorization': `Bearer ${token}`
+        };
+        if (includeContentType) {
+            headers['Content-Type'] = 'application/json';
+        }
+        return headers;
+    }
+
+    function checkAuthStatus() {
+        const token = localStorage.getItem('lucid_token');
+        const authScreen = document.getElementById('auth-screen');
+        const appContent = document.getElementById('app-content');
+
+        if (token) {
+            authScreen.style.display = 'none';
+            appContent.style.display = 'flex'; 
+            window.loadFeed(); 
+            window.loadTimeline(); 
+        } else {
+            authScreen.style.display = 'block';
+            appContent.style.display = 'none';
+        }
+    }
+
+    async function handleRegister(event) {
+        event.preventDefault();
+        const email = document.getElementById('emailInput').value;
+        const password = document.getElementById('passwordInput').value;
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                localStorage.setItem('lucid_token', data.token);
+                alert('Registration successful! Welcome to Lucid AI.');
+                checkAuthStatus(); 
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Registration failed:', error);
+        }
+    }
+
+    async function handleLogin(event) {
+        event.preventDefault(); 
+        const email = document.getElementById('emailInput').value;
+        const password = document.getElementById('passwordInput').value;
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                localStorage.setItem('lucid_token', data.token);
+                checkAuthStatus(); 
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Login failed:', error);
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('lucid_token');
+        checkAuthStatus();
+    }
+
+    // --- DATA FETCHING & UI BUILDERS ---
+
+    window.loadFeed = async function() {
+      const feedContainer = document.getElementById('feed');
+      const countEl = document.getElementById('queueCount');
+      if (!feedContainer) return;
+      
+      feedContainer.innerHTML = '<p style="text-align:left; color: var(--text-light); font-style: italic;">Loading intelligence feed...</p>';
+      
+      try {
+        const response = await fetch('/api/articles', {
+          method: 'GET', 
+          headers: getAuthHeaders()
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            handleLogout();
+            return;
+        }
+        
+        if (!response.ok) throw new Error('Network error');
+        
+        const data = await response.json();
+        const articles = data.articles || [];
+        
+        if (countEl) countEl.innerText = data.unprocessedCount || 0;
+
+        if (articles.length === 0) {
+          feedContainer.innerHTML = '<p id="server-empty-msg" style="text-align:left; color: var(--text-light); font-style: italic;">Feed is empty. Fetch intelligence to begin.</p>';
+          return;
+        }
+
+        let feedHtml = '';
+        articles.forEach(article => {
+          feedHtml += `
+            <div class="card article-card" id="card-${article._id}" style="position: relative;">
+              <button 
+                onclick="toggleLike('${article._id}', this)" 
+                style="position: absolute; top: 15px; right: 15px; background: none; border: none; cursor: pointer; color: ${article.isLiked ? '#e74c3c' : '#a0a0a0'}; transition: transform 0.2s; padding: 5px;"
+                onmouseover="this.style.transform='scale(1.1)'"
+                onmouseout="this.style.transform='scale(1)'"
+                title="Flag this article"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="${article.isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </button>
+              <a href="${article.url}" target="_blank"><h3>${article.title}</h3></a>
+              <div class="source">${article.source}</div>
+              <div class="summary">${article.aiSummary}</div>
+            </div>
+          `;
+        });
+        feedContainer.innerHTML = feedHtml;
+
+      } catch (error) {
+        console.error("Error loading feed:", error);
+        feedContainer.innerHTML = '<p style="color: #e74c3c; font-style: italic;">Cannot connect to backend. Is the server running?</p>';
+      }
+    };
+
+    window.toggleLike = async function(id, btnElement) {
+      const svgElement = btnElement.querySelector('svg');
+      const isCurrentlyLiked = svgElement.getAttribute('fill') === 'currentColor';
+      
+      if (isCurrentlyLiked) {
+        svgElement.setAttribute('fill', 'none');
+        btnElement.style.color = '#a0a0a0';
+      } else {
+        svgElement.setAttribute('fill', 'currentColor');
+        btnElement.style.color = '#e74c3c';
+      }
+
+      try {
+        const response = await fetch('/api/toggle-like/' + id, {
+          method: 'POST', 
+          headers: getAuthHeaders() 
+        });
+
+        if (!response.ok) throw new Error("Backend failed to save");
+      } catch (error) {
+        console.error("Flag toggle failed, reverting UI:", error);
+        if (isCurrentlyLiked) {
+          svgElement.setAttribute('fill', 'currentColor');
+          btnElement.style.color = '#e74c3c';
+        } else {
+          svgElement.setAttribute('fill', 'none');
+          btnElement.style.color = '#a0a0a0';
+        }
+      }
+    };
+
+    window.openSmartSummary = async function(articleId, btnElement) {
+      let targetCard = document.getElementById('card-' + articleId);
+      
+      if (targetCard) {
+        window.showFeed();
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetCard.classList.add('pulse-card');
+        setTimeout(() => targetCard.classList.remove('pulse-card'), 2000);
+        return;
+      }
+
+      const originalHTML = btnElement.innerHTML;
+      btnElement.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+      btnElement.style.animation = "spin 1s linear infinite";
+
+      try {
+        // 👇 CHANGED THIS LINE TO MATCH YOUR BACKEND 👇
+        const response = await fetch('/api/process-single/' + articleId, {
+          method: 'POST', 
+          headers: getAuthHeaders() 
+        });
+
+        if (!response.ok) throw new Error("Backend failed to process");
+        window.location.reload();
+      } catch (error) {
+        console.error("Error generating summary:", error);
+        alert("Failed to generate summary. Check backend logs.");
+        btnElement.innerHTML = originalHTML;
+        btnElement.style.animation = "none";
+      }
+    };
+
+    window.processFromTimeline = window.openSmartSummary;
+
+    window.loadTimeline = async function() {
+      const container = document.getElementById('timelineList');
+      if (!container) return;
+      container.innerHTML = '<p style="opacity: 0.7;">Loading timeline...</p>'; 
+      
+      try {
+        const res = await fetch('/api/timeline', {
+            headers: getAuthHeaders(false) 
+        });
+
+        if (!res.ok) throw new Error('Network error');
+        const articles = await res.json();
+        
+        if (articles.length === 0) {
+          container.innerHTML = '<p style="opacity: 0.7;">No articles in timeline.</p>';
+          return;
+        }
+
+        const grouped = articles.reduce((acc, article) => {
+          const dateVal = article.createdAt ? new Date(article.createdAt) : new Date();
+          const dateStr = dateVal.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+          if (!acc[dateStr]) acc[dateStr] = [];
+          acc[dateStr].push(article);
+          return acc;
+        }, {});
+
+        let timelineHtml = '';
+        for (const [date, items] of Object.entries(grouped)) {
+          timelineHtml += `<div style="font-size: 1.2em; font-weight: 600; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid rgba(128, 128, 128, 0.2); padding-bottom: 8px;">${date}</div>`;
+          
+          items.forEach(item => {
+            const isArchived = item.isArchived === true; 
+            const archivedClass = isArchived ? 'archived' : '';
+            const hasSummary = item.aiSummary && item.aiSummary.trim() !== '';
+            
+            timelineHtml += `
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.1);">
+                <div style="flex: 1; padding-right: 24px;">
+                  <a href="${item.url}" target="_blank" style="text-decoration: none; color: inherit; font-weight: 500; font-size: 1.05em; line-height: 1.4;">${item.title}</a>
+                  ${!hasSummary ? `<span style="font-size: 0.75em; background: var(--border-color); color: var(--text-light); padding: 2px 6px; border-radius: 4px; margin-left: 10px; vertical-align: middle;">In Queue</span>` : ''}
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  ${!hasSummary ? `
+                  <button onclick="processFromTimeline('${item._id}', this)" title="Generate AI Summary" style="background: none; border: none; cursor: pointer; color: var(--brand-color); padding: 8px; transition: transform 0.2s;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                  </button>` : ''}
+                  <button class="archive-btn ${archivedClass}" onclick="toggleArchive('${item._id}', this)" title="${isArchived ? 'Remove from Read Later' : 'Read Later'}" style="background: none; border: none; cursor: pointer; color: inherit; padding: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isArchived ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+        }
+        container.innerHTML = timelineHtml;
+      } catch (error) {
+        console.error("Frontend Timeline Error:", error);
+        container.innerHTML = '<p style="color: red;">Error loading timeline.</p>';
+      }
+    };
+
+    window.loadBookmarks = async function() {
+      const container = document.getElementById('bookmarksList'); 
+      if (!container) return;
+      container.innerHTML = '<p style="opacity: 0.7;">Loading bookmarks...</p>'; 
+      
+      try {
+        const res = await fetch('/api/bookmarks', {
+            headers: getAuthHeaders(false) 
+        });
+        
+        if (!res.ok) throw new Error('Network error');
+        const articles = await res.json();
+        
+        if (articles.length === 0) {
+          container.innerHTML = '<p style="opacity: 0.7;">No articles saved for later.</p>';
+          return;
+        }
+
+        let html = '';
+        articles.forEach(item => {
+          html += `
+            <div style="padding: 16px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.1); display: flex; justify-content: space-between; align-items: center;">
+              <a href="${item.url}" target="_blank" class="bookmark-link" style="text-decoration: none; font-weight: 500;">${item.title}</a>
+              <button class="smart-summary-btn" onclick="openSmartSummary('${item._id}', this)" title="Read AI Summary" style="background: none; border: none; cursor: pointer;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              </button>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      } catch (error) {
+        console.error("Frontend Bookmarks Error:", error);
+        container.innerHTML = '<p style="color: red;">Error loading bookmarks.</p>';
+      }
+    };
+
+    window.toggleArchive = async function(id, buttonEl) {
+      try {
+        const res = await fetch('/api/archive/' + id, { 
+            method: 'POST',
+            headers: getAuthHeaders() 
+        });
+        const data = await res.json();
+        if (data.isArchived) {
+          buttonEl.classList.add('archived');
+          buttonEl.querySelector('svg').setAttribute('fill', 'currentColor'); 
+          buttonEl.setAttribute('title', 'Remove from Read Later'); 
+        } else {
+          buttonEl.classList.remove('archived');
+          buttonEl.querySelector('svg').setAttribute('fill', 'none'); 
+          buttonEl.setAttribute('title', 'Read Later'); 
+        }
+      } catch (error) {
+        console.error("Error toggling archive:", error);
+      }
+    };
+
+    // --- NAVIGATION PANELS ---
+    window.hideAllPanels = function() {
+      ['topicsPanel', 'controlPanel', 'feed', 'timelinePanel', 'bookmarks'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    };
+
+    window.showTopics = function() {
+      window.hideAllPanels();
+      const p = document.getElementById('topicsPanel'); if(p) p.style.display = 'block';
+      const f = document.getElementById('feed'); if(f) f.style.display = 'block';
+      const t = document.getElementById('pageTitle'); if(t) t.innerText = 'Topics Directory';
+      const n = document.getElementById('navTopics'); if(n) n.classList.add('active');
+    };
+
+    window.showFeed = function() {
+      window.hideAllPanels();
+      const c = document.getElementById('controlPanel'); if(c) c.style.display = 'block';
+      const f = document.getElementById('feed'); if(f) f.style.display = 'block';
+      const t = document.getElementById('pageTitle'); if(t) t.innerText = 'Your Feed';
+      const n = document.getElementById('navFeed'); if(n) n.classList.add('active');
+      
+      const allNewsPill = document.querySelector('.tag-pill');
+      if (allNewsPill) window.filterFeed(allNewsPill, 'ALL');
+    };
+
+    window.showTimeline = function() {
+      window.hideAllPanels();
+      const t = document.getElementById('timelinePanel'); if(t) t.style.display = 'block';
+      const p = document.getElementById('pageTitle'); if(p) p.innerText = 'Intelligence Timeline';
+      const n = document.getElementById('navTimeline'); if(n) n.classList.add('active');
+    };
+
+    window.showBookmarks = function() {
+      window.hideAllPanels();
+      const b = document.getElementById('bookmarks'); if(b) b.style.display = 'block';
+      const p = document.getElementById('pageTitle'); if(p) p.innerText = 'Bookmarks';
+      const n = document.getElementById('navBookmarks'); if(n) n.classList.add('active');
+      window.loadBookmarks();
+    };
+
+    // --- UI FILTERS & THEMES ---
+    window.filterFeed = function(buttonElement, keywordString) {
+      document.querySelectorAll('.tag-pill').forEach(btn => btn.classList.remove('active'));
+      if(buttonElement) buttonElement.classList.add('active');
+
+      const cards = document.querySelectorAll('.article-card');
+      let matchCount = 0;
+      
+      cards.forEach(card => {
+        if (keywordString === 'ALL' || card.innerText.includes(keywordString)) {
+          card.style.display = 'block';
+          matchCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const serverEmptyMsg = document.getElementById('server-empty-msg');
+      if (serverEmptyMsg) serverEmptyMsg.style.display = 'none';
+
+      const feedContainer = document.getElementById('feed');
+      let emptyState = document.getElementById('empty-filter-msg');
+      
+      if (matchCount === 0 && feedContainer) {
+        if (!emptyState) {
+          emptyState = document.createElement('p');
+          emptyState.id = 'empty-filter-msg';
+          emptyState.style.cssText = "text-align:left; color: var(--text-light); font-style: italic; padding-top: 20px;";
+          feedContainer.appendChild(emptyState);
+        }
+        emptyState.innerText = 'No intelligence briefings found for ' + keywordString + ' yet. Check back later.';
+        emptyState.style.display = 'block';
+      } else if (emptyState) {
+        emptyState.style.display = 'none';
+      }
+    };
+
+    window.toggleTheme = function() {
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+      localStorage.setItem('lucid_theme', isDark ? 'dark' : 'light');
+      
+      const moon = document.getElementById('moon-icon');
+      const sun = document.getElementById('sun-icon');
+      if (isDark) {
+        if(moon) moon.style.display = 'none';
+        if(sun) sun.style.display = 'block';
+      } else {
+        if(moon) moon.style.display = 'block';
+        if(sun) sun.style.display = 'none';
+      }
+    };
+
+    // --- BACKEND TRIGGERS ---
+    window.runScraper = async function() {
+      const btn = document.getElementById('scrapeBtn');
+      const status = document.getElementById('statusMsg');
+      if(btn) btn.disabled = true; 
+      if(status) { status.innerHTML = "Gathering verified AI intelligence... please wait."; status.className = "status"; }
+      
+      try {
+        const response = await fetch('/api/scrape', {
+            headers: getAuthHeaders(false)
+        });
+        const text = await response.text();
+        if (!response.ok) throw new Error(text || 'Connection failed.');
+        if(status) status.innerText = text + " Updating feed...";
+        
+        await window.loadFeed();
+        await window.loadTimeline();
+        if(status) status.innerText = "Feed Updated!";
+      } catch (e) {
+        if(status) status.innerHTML = '<div class="error-box">' + e.message + '</div>';
+      } finally {
+        if(btn) btn.disabled = false;
+      }
+    };
+
+    window.runProcessor = function() {
+      const btn = document.getElementById('processBtn');
+      const status = document.getElementById('statusMsg');
+      if(btn) btn.disabled = true;
+      if(status) { status.innerText = "AI is analyzing and tagging... please hold."; status.className = "status"; }
+      
+      fetch('/api/process', {
+          headers: getAuthHeaders(false)
+      })
+        .then(async response => {
+          const text = await response.text();
+          if (!response.ok) throw new Error(text || 'Failed to process articles.');
+          return text;
+        })
+        .then(async text => {
+          if(status) status.innerText = text;
+          await window.loadFeed();
+          await window.loadTimeline();
+        })
+        .catch(err => {
+          if(status) status.innerHTML = '<div class="error-box">' + err.message + '</div>';
+        })
+        .finally(() => {
+          if(btn) btn.disabled = false;
+        });
+    };
+
+    // --- SEARCH BAR LOGIC ---
+    window.initializeTopicSearch = function() {
+      const searchInput = document.getElementById('topicSearchInput');
+      if (!searchInput) return;
+
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.article-card');
+        
+        cards.forEach(card => {
+          const textToSearch = card.innerText.toLowerCase();
+          if (textToSearch.includes(searchTerm)) {
+            card.style.display = 'block'; 
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    };
+
+    // --- ON PAGE LOAD ---
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!document.getElementById('bookmark-styles')) {
+        const style = document.createElement('style');
+        style.id = 'bookmark-styles';
+        style.innerHTML = '.bookmark-link { color: inherit; transition: color 0.2s ease; display: block; } .bookmark-link:hover { color: var(--brand-color) !important; }';
+        document.head.appendChild(style);
+      }
+
+      const mainScroll = document.getElementById('mainScroll');
+      const glassHeader = document.getElementById('glassHeader');
+      if (mainScroll && glassHeader) {
+        mainScroll.addEventListener('scroll', () => {
+          glassHeader.style.borderBottom = mainScroll.scrollTop > 10 ? '1px solid var(--border-color)' : '1px solid transparent';
+        });
+      }
+
+      if (localStorage.getItem('lucid_theme') === 'dark') {
+        document.body.classList.add('dark-theme');
+        const moon = document.getElementById('moon-icon');
+        const sun = document.getElementById('sun-icon');
+        if(moon) moon.style.display = 'none';
+        if(sun) sun.style.display = 'block';
+      }
+
+      checkAuthStatus(); 
+      window.initializeTopicSearch(); 
+    });
+  </script>
+</body>
+</html>
