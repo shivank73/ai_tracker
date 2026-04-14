@@ -10,6 +10,7 @@ const rawPostSchema = new mongoose.Schema({
   isProcessed: { type: Boolean, default: false },
   isLiked: { type: Boolean, default: false }, 
   isArchived: { type: Boolean, default: false },
+  processedAt: { type: Date },
   // 👇 THE NEW MULTI-USER SANDBOX TIE-IN 👇
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   // ------

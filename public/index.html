@@ -4,7 +4,9 @@
   <title>LUCID AI</title>
   <style>
 
-
+  @keyframes spin {
+  100% { transform: rotate(360deg); }
+}
 
     /* --- TIMELINE STYLES --- */
     .timeline-date-group { margin-top: 30px; margin-bottom: 15px; font-size: 1.1rem; font-weight: bold; color: var(--text-light); border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
@@ -518,38 +520,58 @@ body.dark-theme #auth-screen::before {
       }
     };
 
-    window.openSmartSummary = async function(articleId, btnElement) {
+window.openSmartSummary = async function(articleId, btnElement) {
       let targetCard = document.getElementById('card-' + articleId);
       
+      // 🛑 FIXED: If the card exists, jump to it immediately, no matter what panel we are on
       if (targetCard) {
-        window.showFeed();
-        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        targetCard.classList.add('pulse-card');
-        setTimeout(() => targetCard.classList.remove('pulse-card'), 2000);
-        return;
+        window.showFeed(); // Unhide the feed panel
+        
+        // Tiny delay so the browser can paint the unhidden feed before calculating the scroll
+        setTimeout(() => {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetCard.classList.add('pulse-card');
+          setTimeout(() => targetCard.classList.remove('pulse-card'), 2000);
+        }, 50);
+        return; // Stop the function here so it doesn't fetch again!
       }
 
       const originalHTML = btnElement.innerHTML;
+      // Show loading spinner
       btnElement.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
       btnElement.style.animation = "spin 1s linear infinite";
 
       try {
-        // 👇 CHANGED THIS LINE TO MATCH YOUR BACKEND 👇
         const response = await fetch('/api/process-single/' + articleId, {
           method: 'POST', 
           headers: getAuthHeaders() 
         });
 
-        if (!response.ok) throw new Error("Backend failed to process");
-        window.location.reload();
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || "Backend failed to process");
+        }
+
+        // 1. Show a success checkmark on the button
+        btnElement.style.animation = "none";
+        btnElement.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        btnElement.style.color = "#10b981"; // Green success color
+        btnElement.disabled = true;
+        btnElement.style.cursor = "default";
+
+        // 2. Quietly update the data in the background!
+        await window.loadFeed();
+        await window.loadTimeline();
+
       } catch (error) {
         console.error("Error generating summary:", error);
-        alert("Failed to generate summary. Check backend logs.");
+        alert(error.message || "Failed to generate summary. Check backend logs.");
         btnElement.innerHTML = originalHTML;
         btnElement.style.animation = "none";
       }
     };
 
+    // Keep Timeline function acting exactly like Bookmarks
     window.processFromTimeline = window.openSmartSummary;
 
     window.loadTimeline = async function() {

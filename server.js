@@ -104,8 +104,8 @@ const authenticateToken = (req, res, next) => {
 
 app.get('/api/articles', authenticateToken, async (req, res) => {
   try {
-    // SCOPED: Only fetch articles belonging to this user
-    const articles = await RawPost.find({ isProcessed: true, userId: req.user.id }).sort({ createdAt: -1 });
+    // Sort strictly by when the AI finished generating the summary
+    const articles = await RawPost.find({ isProcessed: true, userId: req.user.id }).sort({ processedAt: -1 });
     const unprocessedCount = await RawPost.countDocuments({ isProcessed: { $ne: true }, userId: req.user.id });
     
     res.json({ articles, unprocessedCount });
@@ -264,16 +264,22 @@ app.get('/api/process', authenticateToken, async (req, res) => {
 
       while (!success && attempts < 3) {
         try {
+
           const result = await model.generateContent(prompt);
           article.aiSummary = result.response.text();
+
+        //  // --- 2. INJECT THE MOCK SUMMARY ---
+        //   article.aiSummary = "MOCK SUMMARY: This is a fake AI summary to test the chronological feed sorting. #TestTag";
+
           article.isProcessed = true;
+          article.processedAt = new Date(); // <-- ADD THIS LINE
           await article.save();
           
           success = true;
           processedCount++;
           
           console.log(`✅ Processed: ${article.title}`);
-          await delay(10000); 
+          await delay(10000); //1000
           
         } catch (err) {
           const errMsg = err.message ? err.message.toLowerCase() : "";
@@ -318,9 +324,14 @@ app.post('/api/process-single/:id', authenticateToken, async (req, res) => {
     try {
       // Try to generate the content
       const result = await model.generateContent(prompt);
-      
       targetArticle.aiSummary = result.response.text(); 
-      targetArticle.isProcessed = true;           
+    
+      // --- 2. INJECT THE MOCK SUMMARY ---
+      // targetArticle.aiSummary = "MOCK SUMMARY: Single article clicked. This should instantly jump to the absolute top of the feed. #TestTag";
+      
+
+      targetArticle.isProcessed = true;    
+      targetArticle.processedAt = new Date(); // <-- ADD THIS LINE       
       await targetArticle.save();
 
       res.status(200).json({ success: true, message: "Summary generated!" });
