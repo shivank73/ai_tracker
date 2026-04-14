@@ -42,3 +42,22 @@ This decoupling ensures that if a user summarizes a 3-day-old article today, it 
    ```bash
    git clone [https://github.com/your-username/lucid-ai.git](https://github.com/your-username/lucid-ai.git)
    cd lucid-ai
+
+2. **Install dependencies**
+   ```bash
+   npm install
+
+3. **Environment Variables**
+   ```bash
+   PORT=3000
+   MONGO_URI=your_mongodb_connection_string
+   JWT_SECRET=your_super_secret_jwt_key
+   GEMINI_API_KEY=your_google_gemini_api_key
+
+4. **Run the server**
+   ```bash
+   node server.js
+
+
+The web-app will be running at http://localhost:3000
+    
