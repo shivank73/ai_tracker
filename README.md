@@ -4,7 +4,7 @@ Lucid AI is a full-stack, personalized aggregator that fetches breaking artifici
 
 Built with a focus on clean UI and chronological integrity, the dashboard allows users to read news as it breaks or batch-process intelligence briefs at their own pace.
 
-## 🚀 Features
+##  Features
 
 * **Chronological AI Feed:** A real-time dashboard of AI-generated summaries, strictly ordered by the exact moment the AI processed them (`processedAt`), ensuring the newest insights are always at the top.
 * **Intelligence Timeline:** A chronological stream of raw, breaking news ordered by when the scraper found them (`createdAt`). 
@@ -14,7 +14,7 @@ Built with a focus on clean UI and chronological integrity, the dashboard allows
 * **Secure Authentication:** Full JWT and bcrypt-backed user registration and login system.
 * **Dark & Light Modes:** Seamless UI theme toggling with memory persistence.
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 **Backend:**
 * Node.js & Express.js
@@ -28,7 +28,7 @@ Built with a focus on clean UI and chronological integrity, the dashboard allows
 * RESTful API integrations
 * CSS Variables for dynamic theme switching
 
-## 🏗 Architecture Notes: The Chronology Engine
+##  Architecture Notes: The Chronology Engine
 
 A core architectural feature of Lucid AI is how it handles time. 
 * **`createdAt`:** Stamped the moment the RSS scraper finds an article. The **Timeline** sorts by this timestamp so users can see news as it breaks.
